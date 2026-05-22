@@ -63,27 +63,55 @@ export function AssignmentProvider({ children }: { children: React.ReactNode }) 
 
   const [assignments, setAssignments] = useState<Assignment[]>([]);
 
-  // Load assignments from Firestore (real-time)
   useEffect(() => {
-    if (!userId) return;
+    if (!userId) {
+      setAssignments([]);
+      return;
+    }
 
+    let unsubscribe: () => void;
+    let retryTimeout: ReturnType<typeof setTimeout>;
+    let retryCount = 0;
+    const MAX_RETRIES = 5;
 
-    const q = query(
-      collection(db, `users/${userId}/assignments`),
-      orderBy("dueDate", "asc")
-    );
+    const subscribeToAssignments = () => {
+      const q = query(
+        collection(db, `users/${userId}/assignments`),
+        orderBy("dueDate", "asc")
+      );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const next: Assignment[] = snapshot.docs.map((d) => assignmentFromDoc(d.data(), d.id));
-      setAssignments(next);
-    });
+      unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          retryCount = 0;
+          const next: Assignment[] = snapshot.docs.map((d) => assignmentFromDoc(d.data(), d.id));
+          setAssignments(next);
+        },
+        (error) => {
+          if (error.code === "permission-denied") {
+            if (retryCount < MAX_RETRIES) {
+              retryCount++;
+              console.warn(`Auth token syncing. Retrying listener... (Attempt ${retryCount}/${MAX_RETRIES})`);
+              retryTimeout = setTimeout(subscribeToAssignments, 1000);
+            } else {
+              console.error("Max retries reached. Permission permanently denied. Please check your Firestore Security Rules.");
+            }
+          } else {
+            console.error("Error in assignments snapshot listener:", error);
+          }
+        }
+      );
+    };
 
-    return () => unsubscribe();
+    // Initialize the listener
+    subscribeToAssignments();
+
+    // Cleanup function
+    return () => {
+      if (unsubscribe) unsubscribe();
+      if (retryTimeout) clearTimeout(retryTimeout);
+    };
   }, [userId]);
-
-  // When user logs out we intentionally keep local state so recently created assignments stay visible.
-  // (Firestore real-time listener is also removed via unsubscribe when userId changes.)
-
 
 
   const addAssignment = async (assignment: Omit<Assignment, "id">) => {
