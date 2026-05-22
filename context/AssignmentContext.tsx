@@ -1,8 +1,23 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import {
+  collection,
+  onSnapshot,
+  addDoc,
+  doc,
+  updateDoc,
+  deleteDoc,
+  query,
+  orderBy,
+  Timestamp,
+  serverTimestamp,
+} from "firebase/firestore";
+import { db } from "../firebase/firebaseConfig";
+import { useAuth } from "./AuthContext";
 
 export interface Assignment {
   id: string;
   title: string;
+
   description?: string;
   dueDate: Date;
   completed: boolean;
@@ -11,94 +26,117 @@ export interface Assignment {
 
 interface AssignmentContextType {
   assignments: Assignment[];
-  addAssignment: (assignment: Omit<Assignment, "id">) => void;
-  updateAssignment: (id: string, assignment: Partial<Assignment>) => void;
-  deleteAssignment: (id: string) => void;
+  addAssignment: (assignment: Omit<Assignment, "id">) => Promise<void>;
+  updateAssignment: (id: string, assignment: Partial<Assignment>) => Promise<void>;
+  deleteAssignment: (id: string) => Promise<void>;
   getAssignmentsDueToday: () => Assignment[];
+
   getAssignmentsDueTomorrow: () => Assignment[];
   getAssignmentsByDate: (date: Date) => Assignment[];
-  toggleAssignmentComplete: (id: string) => void;
+  toggleAssignmentComplete: (id: string) => Promise<void>;
 }
 
-const AssignmentContext = createContext<AssignmentContextType | undefined>(
-  undefined
-);
+const AssignmentContext = createContext<AssignmentContextType | undefined>(undefined);
+
+function toJsDate(dueDate: any): Date {
+  if (!dueDate) return new Date();
+  if (dueDate instanceof Date) return dueDate;
+  // Firestore Timestamp
+  if (typeof dueDate?.toDate === "function") return dueDate.toDate();
+  return new Date(dueDate);
+}
+
+function assignmentFromDoc(docData: any, id: string): Assignment {
+  return {
+    id,
+    title: String(docData?.title ?? ""),
+    description: typeof docData?.description === "string" ? docData.description : "",
+    dueDate: toJsDate(docData?.dueDate),
+    completed: Boolean(docData?.completed),
+    color: typeof docData?.color === "string" ? docData.color : undefined,
+  };
+}
 
 export function AssignmentProvider({ children }: { children: React.ReactNode }) {
-  const [assignments, setAssignments] = useState<Assignment[]>([
-    {
-      id: "1",
-      title: "NET101 - MAC Address",
-      description: "Network configuration task",
-      dueDate: new Date(),
-      completed: false,
-      color: "#EF4444", // red
-    },
-    {
-      id: "2",
-      title: "EASH - Reflection on Sacrifice, Compassion and Renewal",
-      description: "Essay assignment",
-      dueDate: new Date(Date.now() + 86400000),
-      completed: false,
-      color: "#F59E0B", // orange
-    },
-    {
-      id: "3",
-      title: "STAT200 - Survey Analysis",
-      description: "Green-light planning task",
-      dueDate: new Date(Date.now() + 2 * 86400000),
-      completed: false,
-      color: "#34D399", // green
-    },
-  ]);
+  const { user } = useAuth();
+  const userId = user?.uid;
 
-  // Validate assignments on mount
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
+
+  // Load assignments from Firestore (real-time)
   useEffect(() => {
-    setAssignments(currentAssignments =>
-      currentAssignments.filter(assignment =>
-        assignment &&
-        typeof assignment === 'object' &&
-        typeof assignment.id === 'string' &&
-        typeof assignment.title === 'string'
-      )
-    );
-  }, []);
-
-  const addAssignment = (assignment: Omit<Assignment, "id">) => {
-    // Validate assignment data
-    if (!assignment || typeof assignment.title !== 'string' || assignment.title.trim() === '') {
-      console.warn('Invalid assignment data provided to addAssignment');
+    if (!userId) {
+      setAssignments([]);
       return;
     }
 
-    const newAssignment: Assignment = {
-      ...assignment,
-      id: Date.now().toString(),
+    const q = query(
+      collection(db, `users/${userId}/assignments`),
+      orderBy("dueDate", "asc")
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const next: Assignment[] = snapshot.docs.map((d) => assignmentFromDoc(d.data(), d.id));
+      setAssignments(next);
+    });
+
+    return () => unsubscribe();
+  }, [userId]);
+
+
+  const addAssignment = async (assignment: Omit<Assignment, "id">) => {
+    if (!userId) {
+      console.warn("No user logged in; cannot save assignment.");
+      return;
+    }
+
+    if (!assignment || typeof assignment.title !== "string" || assignment.title.trim() === "") {
+      console.warn("Invalid assignment data provided to addAssignment");
+      return;
+    }
+
+    const payload = {
       title: assignment.title.trim(),
-      description: typeof assignment.description === 'string' ? assignment.description.trim() : '',
-      dueDate: assignment.dueDate instanceof Date ? assignment.dueDate : new Date(),
+      description: typeof assignment.description === "string" ? assignment.description.trim() : "",
+      dueDate: Timestamp.fromDate(
+        assignment.dueDate instanceof Date ? assignment.dueDate : new Date()
+      ),
       completed: Boolean(assignment.completed),
-      color: typeof assignment.color === 'string' ? assignment.color : '#FF6B6B',
+      color: typeof assignment.color === "string" ? assignment.color : "#FF6B6B",
+      createdAt: serverTimestamp(),
     };
-    setAssignments([...assignments, newAssignment]);
+
+    await addDoc(collection(db, `users/${userId}/assignments`), payload);
   };
 
-  const updateAssignment = (id: string, updates: Partial<Assignment>) => {
-    setAssignments(
-      assignments.map((a) => (a.id === id ? { ...a, ...updates } : a))
-    );
+  const updateAssignment = async (id: string, updates: Partial<Assignment>) => {
+    if (!userId) return;
+
+    const payload: any = {};
+    if (typeof updates.title === "string") payload.title = updates.title;
+    if (typeof updates.description === "string") payload.description = updates.description;
+    if (updates.dueDate) {
+      const d = updates.dueDate instanceof Date ? updates.dueDate : new Date(updates.dueDate as any);
+      payload.dueDate = Timestamp.fromDate(d);
+    }
+    if (typeof updates.completed === "boolean") payload.completed = updates.completed;
+    if (typeof updates.color === "string") payload.color = updates.color;
+
+    await updateDoc(doc(db, `users/${userId}/assignments`, id), payload);
   };
 
-  const deleteAssignment = (id: string) => {
-    setAssignments(assignments.filter((a) => a.id !== id));
+  const deleteAssignment = async (id: string) => {
+    if (!userId) return;
+    await deleteDoc(doc(db, `users/${userId}/assignments`, id));
   };
 
-  const toggleAssignmentComplete = (id: string) => {
-    setAssignments(
-      assignments.map((a) =>
-        a.id === id ? { ...a, completed: !a.completed } : a
-      )
-    );
+  const toggleAssignmentComplete = async (id: string) => {
+    if (!userId) return;
+    const current = assignments.find((a) => a.id === id);
+    const nextCompleted = !current?.completed;
+    await updateDoc(doc(db, `users/${userId}/assignments`, id), {
+      completed: nextCompleted,
+    });
   };
 
   const getAssignmentsDueToday = () => {

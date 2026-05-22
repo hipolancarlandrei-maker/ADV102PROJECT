@@ -2,6 +2,8 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { initializeAuth } from "firebase/auth";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getFirestore } from "firebase/firestore";
+
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { getReactNativePersistence } = require("@firebase/auth/dist/rn/index.js");
@@ -25,5 +27,8 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 export const auth = initializeAuth(app, {
   persistence: getReactNativePersistence(AsyncStorage),
 });
+
+// Create Firestore instance
+export const db = getFirestore(app);
 
 export default app;
