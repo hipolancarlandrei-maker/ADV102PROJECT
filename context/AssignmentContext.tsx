@@ -65,10 +65,8 @@ export function AssignmentProvider({ children }: { children: React.ReactNode }) 
 
   // Load assignments from Firestore (real-time)
   useEffect(() => {
-    if (!userId) {
-      setAssignments([]);
-      return;
-    }
+    if (!userId) return;
+
 
     const q = query(
       collection(db, `users/${userId}/assignments`),
@@ -82,6 +80,10 @@ export function AssignmentProvider({ children }: { children: React.ReactNode }) 
 
     return () => unsubscribe();
   }, [userId]);
+
+  // When user logs out we intentionally keep local state so recently created assignments stay visible.
+  // (Firestore real-time listener is also removed via unsubscribe when userId changes.)
+
 
 
   const addAssignment = async (assignment: Omit<Assignment, "id">) => {
