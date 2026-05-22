@@ -11,7 +11,7 @@ export default function RootLayout() {
       <ThemeProvider>
         <AuthProvider>
           <AssignmentProvider>
-            <Slot /> {/* renders whatever child route is active */}
+            <Slot />
           </AssignmentProvider>
         </AuthProvider>
       </ThemeProvider>

@@ -47,10 +47,10 @@ export default function HomeScreen() {
 
   const assignmentsToday = getAssignmentsDueToday();
   const assignmentsTomorrow = getAssignmentsDueTomorrow();
-  
+
   // Get all assignment dates for highlighting in calendar
   const assignmentDates = assignments.map((a) => new Date(a.dueDate));
-  
+
   // Get assignments for selected date
   const selectedDateAssignments = selectedDate ? getAssignmentsByDate(selectedDate) : [];
 
@@ -121,7 +121,7 @@ export default function HomeScreen() {
   };
 
   const content = (
-    <View style={[styles.container, { backgroundColor: backgroundType === "none" ? theme.colors.background : "transparent" }]}> 
+    <View style={[styles.container, { backgroundColor: backgroundType === "none" ? theme.colors.background : "transparent" }]}>
       <View style={[styles.header, { backgroundColor: theme.colors.card, borderBottomColor: theme.colors.border }]}>
         <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Assignment Tracker</Text>
       </View>
@@ -134,22 +134,22 @@ export default function HomeScreen() {
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Assignment Due Today:</Text>
             </View>
-            <View style={[styles.assignmentsList, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}> 
+            <View style={[styles.assignmentsList, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
               {assignmentsToday.length === 0 ? (
-                <View style={[styles.emptyBox, { backgroundColor: theme.colors.inputBg }]}> 
+                <View style={[styles.emptyBox, { backgroundColor: theme.colors.inputBg }]}>
                   <Text style={[styles.emptyText, { color: theme.colors.subtext }]}>None! Yehey!</Text>
                 </View>
               ) : (
                 assignmentsToday
                   .filter(assignment => assignment && typeof assignment === 'object' && assignment.id)
                   .map((assignment) => (
-                  <AssignmentCard
-                    key={assignment.id}
-                    assignment={assignment}
-                    onToggleComplete={toggleAssignmentComplete}
-                    onDelete={deleteAssignment}
-                  />
-                ))
+                    <AssignmentCard
+                      key={assignment.id}
+                      assignment={assignment}
+                      onToggleComplete={toggleAssignmentComplete}
+                      onDelete={deleteAssignment}
+                    />
+                  ))
               )}
             </View>
           </View>
@@ -159,55 +159,15 @@ export default function HomeScreen() {
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Assignment Due Tomorrow</Text>
             </View>
-            <View style={[styles.assignmentsList, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}> 
+            <View style={[styles.assignmentsList, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
               {assignmentsTomorrow.length === 0 ? (
-                <View style={[styles.emptyBox, { backgroundColor: theme.colors.inputBg }]}> 
+                <View style={[styles.emptyBox, { backgroundColor: theme.colors.inputBg }]}>
                   <Text style={[styles.emptyText, { color: theme.colors.subtext }]}>None! Yehey!</Text>
                 </View>
               ) : (
                 assignmentsTomorrow
                   .filter(assignment => assignment && typeof assignment === 'object' && assignment.id)
                   .map((assignment) => (
-                  <AssignmentCard
-                    key={assignment.id}
-                    assignment={assignment}
-                    onToggleComplete={toggleAssignmentComplete}
-                    onDelete={deleteAssignment}
-                  />
-                ))
-              )}
-            </View>
-          </View>
-        </View>
-
-        {/* Right Section - Calendar */}
-        <View style={styles.rightSection}>
-          <Calendar 
-            onDateSelect={setSelectedDate}
-            highlightDates={assignmentDates}
-          />
-          
-          {/* Selected Date Tasks */}
-          {selectedDate && (
-            <View style={styles.assignmentSection}>
-              <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, { color: theme.colors.text }]}> 
-                  Tasks for {selectedDate.toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric"
-                  })}
-                </Text>
-              </View>
-              <View style={[styles.assignmentsList, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}> 
-                {selectedDateAssignments.length === 0 ? (
-                  <View style={[styles.emptyBox, { backgroundColor: theme.colors.inputBg }]}> 
-                    <Text style={[styles.emptyText, { color: theme.colors.subtext }]}>No tasks on this date</Text>
-                  </View>
-                ) : (
-                  selectedDateAssignments
-                    .filter(assignment => assignment && typeof assignment === 'object' && assignment.id)
-                    .map((assignment) => (
                     <AssignmentCard
                       key={assignment.id}
                       assignment={assignment}
@@ -215,6 +175,46 @@ export default function HomeScreen() {
                       onDelete={deleteAssignment}
                     />
                   ))
+              )}
+            </View>
+          </View>
+        </View>
+
+        {/* Right Section - Calendar */}
+        <View style={styles.rightSection}>
+          <Calendar
+            onDateSelect={setSelectedDate}
+            highlightDates={assignmentDates}
+          />
+
+          {/* Selected Date Tasks */}
+          {selectedDate && (
+            <View style={styles.assignmentSection}>
+              <View style={styles.sectionHeader}>
+                <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+                  Tasks for {selectedDate.toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric"
+                  })}
+                </Text>
+              </View>
+              <View style={[styles.assignmentsList, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+                {selectedDateAssignments.length === 0 ? (
+                  <View style={[styles.emptyBox, { backgroundColor: theme.colors.inputBg }]}>
+                    <Text style={[styles.emptyText, { color: theme.colors.subtext }]}>No tasks on this date</Text>
+                  </View>
+                ) : (
+                  selectedDateAssignments
+                    .filter(assignment => assignment && typeof assignment === 'object' && assignment.id)
+                    .map((assignment) => (
+                      <AssignmentCard
+                        key={assignment.id}
+                        assignment={assignment}
+                        onToggleComplete={toggleAssignmentComplete}
+                        onDelete={deleteAssignment}
+                      />
+                    ))
                 )}
               </View>
             </View>
@@ -223,7 +223,7 @@ export default function HomeScreen() {
       </ScrollView>
 
       {/* Bottom Navigation */}
-      <View style={[styles.bottomNav, { backgroundColor: theme.colors.card, borderTopColor: theme.colors.border }]}> 
+      <View style={[styles.bottomNav, { backgroundColor: theme.colors.card, borderTopColor: theme.colors.border }]}>
         <TouchableOpacity style={[styles.navButton, { backgroundColor: theme.colors.inputBg }]}>
           <Text style={[styles.navIcon, { color: theme.colors.subtext }]}>🏠</Text>
         </TouchableOpacity>
@@ -244,8 +244,8 @@ export default function HomeScreen() {
         animationType="slide"
         onRequestClose={() => setShowSettingsModal(false)}
       >
-        <View style={[styles.modalOverlay, { backgroundColor: theme.colors.modalOverlay }]}> 
-          <View style={[styles.modalContent, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}> 
+        <View style={[styles.modalOverlay, { backgroundColor: theme.colors.modalOverlay }]}>
+          <View style={[styles.modalContent, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: theme.colors.text }]}>Settings</Text>
               <TouchableOpacity onPress={() => setShowSettingsModal(false)}>
@@ -274,13 +274,13 @@ export default function HomeScreen() {
             </View>
 
             <View style={styles.backgroundOptions}>
-              {( ["none", "static", "gif"] as BackgroundType[] ).map((type) => {
+              {(["none", "static", "gif"] as BackgroundType[]).map((type) => {
                 const label =
                   type === "none"
                     ? "Default"
                     : type === "static"
-                    ? "Static Image"
-                    : "GIF Background";
+                      ? "Static Image"
+                      : "GIF Background";
 
                 return (
                   <TouchableOpacity
@@ -309,7 +309,7 @@ export default function HomeScreen() {
               <Text style={[styles.settingDescription, { color: theme.colors.accent, textAlign: "center", marginBottom: 12 }]}>Picking background image...</Text>
             )}
 
-            <View style={[styles.backgroundPreview, { borderColor: theme.colors.border, backgroundColor: theme.colors.inputBg }]}> 
+            <View style={[styles.backgroundPreview, { borderColor: theme.colors.border, backgroundColor: theme.colors.inputBg }]}>
               <Text style={[styles.previewText, { color: theme.colors.text }]}>Background choice will appear behind the home page content.</Text>
             </View>
 
